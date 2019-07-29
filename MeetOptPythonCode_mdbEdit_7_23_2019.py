@@ -20,6 +20,9 @@ from math import *
 from pulp import *
 import time
 import os
+from constants import *
+import pandas as pd
+
 
 ## Begin INPUT SETTINGS
 #1 if want to write output to file at the following path
@@ -57,12 +60,8 @@ else:
 #DATA arrays from Excel workbook:
     #%data: athlete set, event set, stroke set,  event_noMR set, event11 set, indivrun set, relay set, relaynoMR set, homerank set, opprank set, place set, scenario set, scenprob[scenario], BigM[event11], opptime[opprank,event11,scenario], playperf[athlete, event_noMR], playperfMR[athlete, stroke],indivplcscore[place], relayplcscore[place], Maxevent, Maxindevent, Maxrelayevent, TopopprankIndiv, TopopprankRelay
 
-#highest relative rank for home
-Tophomerank = 3;
 # small constant
 EPS = 0.0001;
-#number of people on a relay team
-relaySize = 4;
 
 #Just solve the whole problem (NO VORP calculation)
 #athletetest = ""
@@ -268,7 +267,7 @@ SwimMeetOpt += rvar[3]["200MR"] == lpSum(playperfMR[i,j]*zMRvar[i][j] for i in a
 #force consistency in rank order
 for k in homerank:
     for j in event11:
-        if k < Tophomerank:
+        if k < TOP_HOME_RANK:
            SwimMeetOpt += rvar[k][j] <= rvar[k+1][j]
 
 #runner/team of rank k can be place in at most one place (1st, 2nd, or 3rd) vs opp 1

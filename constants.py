@@ -71,3 +71,16 @@ SCORER_LIMIT = {"Six Lane": [3,2], "Five Lane": [2,1]}
 #                       "Double Dual": {"Nine": {"Individual": [9, 4, 3, 2, 1], "Relay": [11, 4, 2], "Limit": [3,2]},
 #                                       "Eight": {"Individual": [9, 4, 3, 2, 1], "Relay": [11, 4, 2], "Limit": [3,2]}},
 #                       "Triangular": ""}
+
+########################################################################################################################
+#                                      CONSTANTS FOR MeetOpt.py CAN BE CHANGED HERE                                    #
+########################################################################################################################
+# The maximum amount of time (in minutes) that the optimization can run before needing to have a solution
+MAX_SOLVE_TIME = 5
+# The solver used to find solution in program. Software currently works with Gurobi and CBC
+SOLVER_USED = "Gurobi"
+# Optimality condition, the decimal (0-1) gap to satisfy the optimality conditions
+OPT_GAP = 0.05
+# Team-based constants
+TOP_HOME_RANK = 3  # the highest relative rank for home team
+RELAY_TEAM_SIZE = 4  # there are always 4 swimmers on a relay team

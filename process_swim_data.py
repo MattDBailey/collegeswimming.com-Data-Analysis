@@ -4,6 +4,7 @@ from constants import *
 import re
 import helperfunctions as hf
 from collections import Counter
+import MeetOpt
 # This file is for processing the data
 
 
@@ -417,8 +418,9 @@ def demo_code_with_time_filter():
         team_a_matrix.append([])
         for j in score_matrix[i]:
             team_a_matrix[i].append(j[0])
-
     print(team_a_matrix)
+    print(MeetOpt.format_pred_perf(bucknell_perf))
     return(team_a_matrix)
 
-#demo_code_with_time_filter()
+
+demo_code_with_time_filter()

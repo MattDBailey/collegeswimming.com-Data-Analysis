@@ -145,7 +145,7 @@ if __name__ == '__main__':
     score_matrix = demo_code_with_time_filter()
     # #Return the Nash equilibrium mixed strategy and expected points for team A and team B.
     f,optA = FindOptStrategy('A', score_matrix)
-    g,optB = FindOptStrategy('B',score_matrix)
+    g,optB = FindOptStrategy('B', score_matrix)
     print('\n Printing f')
     print(f)
     print('\n Printing optA')
