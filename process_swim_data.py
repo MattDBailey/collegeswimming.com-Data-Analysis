@@ -4,7 +4,6 @@ from constants import *
 import re
 import helperfunctions as hf
 from collections import Counter
-import MeetOpt
 # This file is for processing the data
 
 
@@ -40,10 +39,15 @@ def get_athlete_data(swims, swimmers, teams, event_list):
     # get list of all groups made above
     swimmer_event_pairs_used = grouped_dataset.groups.keys()
 
+    # filter out relay events so that all parts split up by team are represented by one category
+    r = re.compile("..[MF].+")  # look for relay events. the lookup is performed by finding the leadoff
+    relay_list = list(filter(r.match, event_list))
+    individual_events = list(filter(lambda x: x[2] not in "MF", event_list))
+
     team_data = []
     for swimmer, swimmer_data in swimmers.iterrows():
         team = teams.loc[swimmer_data["team_id"]]["team_name"]
-        for event in event_list:
+        for event in individual_events:
             if (swimmer, event) not in swimmer_event_pairs_used:
                 # swimmer-event pair is not an existing group (meaning swimmer never participated in that event), so
                 # put down their predicted times for the event as None
@@ -56,9 +60,77 @@ def get_athlete_data(swims, swimmers, teams, event_list):
                 average_time = individual_event_data["time"].mean()
                 median_time = individual_event_data["time"].median()
                 team_data.append({"swimmer_id": swimmer, "event": event, "team": team,
-                                  "minimum_time": minimum_time, "average_time": average_time, "median_time": median_time})
+                                  "minimum_time": minimum_time, "average_time": average_time,
+                                  "median_time": median_time})
+        # NOTE: Need to make this work for events of different lengths!!!!!
+            #TODO: Add in leadoff times (even if based on regular freestyle)
+        #           and get it so that legs from same relay are grouped together
+
+        free_legs = []
+        free_leadoff = []
+        medley_backstroke = []
+        medley_breaststroke = []
+        medley_butterfly = []
+        medley_leadoff = []
+
+        for relay_name in relay_list:
+            if relay_name[1:3] == "1F":
+                free_legs.append(relay_name)
+            elif relay_name[1:3] == "2M":
+                medley_backstroke.append(relay_name)
+            elif relay_name[1:3] == "3M":
+                medley_breaststroke.append(relay_name)
+            elif relay_name[1:3] == "4M":
+                medley_butterfly.append(relay_name)
+            elif relay_name[1:3] == "LM":
+                medley_leadoff.append(relay_name)
+            elif relay_name[1:3] == "LF":
+                free_leadoff.append(relay_name)
+
+        relay_leg_columns = [free_leadoff, free_legs, medley_leadoff,
+                             medley_backstroke, medley_breaststroke, medley_butterfly]
+
+        for event_group in relay_leg_columns:
+            distance_groups = {}
+            # each event in event_group is a different relay leg type (e.g. freestyle, backstroke, breaststroke)
+            for event in event_group:
+                if event[:-1] in distance_groups:
+                    distance_groups[event[:-1]].append(event)
+                else:
+                    distance_groups[event[:-1]] = [event]
+
+            # each leg_length in distance groups is a relay leg category of specific length (e.g. free 200, free 400)
+            for leg_length in distance_groups:
+                time_list = []
+                # each entry in distance_groups[leg_length] is from when the swimmer participated in a different team
+                # (e.g. relay team A, B, C, etc)
+                for relay_event_team in distance_groups[leg_length]:
+                    if (swimmer, relay_event_team) in swimmer_event_pairs_used:
+                        individual_event_data = grouped_dataset.get_group((swimmer, relay_event_team))
+                        time_list += individual_event_data["time"].tolist()
+                if time_list:
+                    #TODO: this feels wrong...it works, but it feels wrong
+                    time_list = pd.DataFrame({"time": time_list})
+                    minimum_time = time_list["time"].min()
+                    average_time = time_list["time"].mean()
+                    median_time = time_list["time"].median()
+                    team_data.append({"swimmer_id": swimmer, "event": leg_length, "team": team,
+                                      "minimum_time": minimum_time, "average_time": average_time,
+                                      "median_time": median_time})
+                else:
+                    team_data.append({"swimmer_id": swimmer, "event": leg_length, "team": team,
+                                      "minimum_time": None, "average_time": None, "median_time": None})
+
     # convert team_data dictionary into a pandas dataframe
-    team_data = pd.DataFrame(team_data, columns=["swimmer_id", "event", "team", "minimum_time", "average_time", "median_time"])
+    team_data = pd.DataFrame(team_data, columns=["swimmer_id", "event", "team",
+                                                 "minimum_time", "average_time", "median_time"])
+    #NOTE: This isn't needed here (or at all, possibly), but if relays start showing up in pred_perf matrices in the
+    #   wrong order, the three lines below should be able to fix it if you put them in the get_pred_perf function and
+    #   add event_list in as one of the parameters for the function.
+    #unique_relays = list(filter(lambda x: x[-1] == "A", relay_list))
+    #unique_relays = list(x[:-1] for x in unique_relays)
+    #column_list = individual_events + unique_relays
+
     # This will have every possible athlete-event pairing, even if an athlete hasn't done that event before
     return team_data
 
@@ -264,17 +336,38 @@ def calculate_pred_score(perf_team_a, line_team_a, perf_team_b, line_team_b, sco
     :param scoring_method: used to determine how points are allocated
     :return: pred_score: Integer value of team A's predicted
     """
-    # create predicted performance matrices that only contain values for swimmers in the lineup
-    lineup_scores_a = perf_team_a[line_team_a == 1]
-    lineup_scores_b = perf_team_b[line_team_b == 1]
 
     # Team scores are integer values, initialize them at 0
     score_a = score_b = 0
 
-    # Find times for all relay events and put them together in one dictionary
-    event_list = lineup_scores_a.columns.tolist()
+    # Find times for all relay events and put them together in one dictionary.
+    event_list = line_team_a.columns.tolist()
+    r = re.compile("..[MF].+")  # look for relay events. the lookup is performed by finding the leadoff
+    relay_list = list(filter(r.match, event_list))
+    individual_events = list(filter(lambda x: x[2] not in "MF", event_list))
+
+    # create predicted performance matrices that only contain values for swimmers in the lineup
+    lineup_scores_a = perf_team_a[individual_events]
+    lineup_scores_b = perf_team_b[individual_events]
+    #
+    print("frick")
+    for relay_name in relay_list:
+        lineup_scores_a[relay_name] = perf_team_a[relay_name[:-1]].copy()
+        lineup_scores_b[relay_name] = perf_team_b[relay_name[:-1]].copy()
+        print(relay_name)
+        print(lineup_scores_a[relay_name])
+
+    lineup_scores_a = lineup_scores_a[line_team_a == 1]
+    lineup_scores_b = lineup_scores_b[line_team_b == 1]
+    print(lineup_scores_a)
+#NOTE: everything above is an attempt to get relays to go from general value to individual relays.
+#   brand new solution: add a bunch of columns to pred perf to make it identical to lineup matrix. then you can use old way.
+
+    event_list = line_team_a.columns.tolist()
     r = re.compile(".L[MF].+")  # look for relay events. the lookup is performed by finding the leadoff
     relay_list = list(filter(r.match, event_list))
+    individual_events = list(filter(lambda x: x[2] not in "MF", event_list))
+
     relay_event_results = dict()
     for value in relay_list:
         #find out what type of relay value is and make list of legs in relay
@@ -308,8 +401,7 @@ def calculate_pred_score(perf_team_a, line_team_a, perf_team_b, line_team_b, sco
         temp_a, temp_b = score_event(results_a, results_b, RELAY_POINTS[scoring_method], SCORER_LIMIT[scoring_method][1])
         score_a += temp_a
         score_b += temp_b
-    # score individual events, which we identify in the line below
-    individual_events = list(filter(lambda x: x[2] not in "MF", event_list))
+    # score individual events
     for column_name in individual_events:
         results_a = lineup_scores_a[column_name][lineup_scores_a[column_name].notna()].tolist()
         results_b = lineup_scores_b[column_name][lineup_scores_b[column_name].notna()].tolist()
@@ -423,4 +515,39 @@ def demo_code_with_time_filter():
     return(team_a_matrix)
 
 
-demo_code_with_time_filter()
+#demo_code_with_time_filter()
+
+def test_new_get_ath_data():
+    bucknell_vs_lehigh = 119957
+    bucknell_invitational = 136124
+    bu_lehigh = 119748
+    swims, swimmers, teams, event_list = get_data()
+    team_data_in_range, filtered_swimmers= filter_by_date_range(swims, swimmers, None, 1548460800) #day of bu_lehigh meet 1548460800
+    #swims = swims[swims["meet_id"] == bucknell_vs_lehigh]  # check to see that everything works for single meet
+    team_data = get_athlete_data(team_data_in_range, filtered_swimmers, teams, event_list)
+    pred_perf = get_predicted_performance_matrix(team_data, 'average_time')
+    some_lineup = get_team_lineup(swims, filtered_swimmers, teams, event_list, bucknell_vs_lehigh)
+    bucknell_perf = filter_by_team(pred_perf, filtered_swimmers, 184)
+    bucknell_lineup = filter_by_team(some_lineup, filtered_swimmers, 184)
+    lehigh_perf = filter_by_team(pred_perf, filtered_swimmers, 141)
+    lehigh_lineup = filter_by_team(some_lineup, filtered_swimmers, 141)
+    print("lineup example")
+    print(bucknell_lineup)
+    print("pred perf example")
+    print(bucknell_perf)
+    # get additional lineups for matrix
+    bucknell_inv_lin = get_team_lineup(team_data_in_range, filtered_swimmers, teams, event_list, bucknell_invitational)
+    bucknell_inv_lin = filter_by_team(bucknell_inv_lin, filtered_swimmers, 184)
+    bu_lehigh_lin = get_team_lineup(team_data_in_range, filtered_swimmers, teams, event_list, bu_lehigh)
+    bu_lehigh_lin = filter_by_team(bu_lehigh_lin, filtered_swimmers, 141)
+    # test individual parts
+    score_a, score_b = calculate_pred_score(bucknell_perf, bucknell_lineup, lehigh_perf, lehigh_lineup)
+    print(score_a)
+    print(score_b)
+
+    print(team_data)
+    print(pred_perf)
+#TODO: todays tasks:
+#   Get new pred_perf structure to be organized such that it follows proper structure. You want it HUMAN READABLE.
+#   Get calculate_pred_score working with new pred_perf structure
+test_new_get_ath_data()
