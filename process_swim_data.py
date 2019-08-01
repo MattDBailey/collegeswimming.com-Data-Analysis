@@ -350,15 +350,13 @@ def calculate_pred_score(perf_team_a, line_team_a, perf_team_b, line_team_b, sco
     lineup_scores_a = perf_team_a[individual_events]
     lineup_scores_b = perf_team_b[individual_events]
     #
-    print("frick")
     for relay_name in relay_list:
-        lineup_scores_a[relay_name] = perf_team_a[relay_name[:-1]].copy()
-        lineup_scores_b[relay_name] = perf_team_b[relay_name[:-1]].copy()
-        print(relay_name)
-        print(lineup_scores_a[relay_name])
+        lineup_scores_a[relay_name] = perf_team_a[relay_name[:-1]].tolist()
+        lineup_scores_b[relay_name] = perf_team_b[relay_name[:-1]].tolist()
 
     lineup_scores_a = lineup_scores_a[line_team_a == 1]
     lineup_scores_b = lineup_scores_b[line_team_b == 1]
+    print("line perf")
     print(lineup_scores_a)
 #NOTE: everything above is an attempt to get relays to go from general value to individual relays.
 #   brand new solution: add a bunch of columns to pred perf to make it identical to lineup matrix. then you can use old way.
@@ -511,7 +509,7 @@ def demo_code_with_time_filter():
         for j in score_matrix[i]:
             team_a_matrix[i].append(j[0])
     print(team_a_matrix)
-    print(MeetOpt.format_pred_perf(bucknell_perf))
+    #print(MeetOpt.format_pred_perf(bucknell_perf))
     return(team_a_matrix)
 
 
@@ -535,6 +533,7 @@ def test_new_get_ath_data():
     print(bucknell_lineup)
     print("pred perf example")
     print(bucknell_perf)
+    print("line perf")
     # get additional lineups for matrix
     bucknell_inv_lin = get_team_lineup(team_data_in_range, filtered_swimmers, teams, event_list, bucknell_invitational)
     bucknell_inv_lin = filter_by_team(bucknell_inv_lin, filtered_swimmers, 184)
@@ -547,6 +546,19 @@ def test_new_get_ath_data():
 
     print(team_data)
     print(pred_perf)
+    score_matrix = pred_score_matrix([bucknell_perf, lehigh_perf],[[bucknell_lineup, bucknell_inv_lin],
+                                                                   [lehigh_lineup, bu_lehigh_lin]])
+    print(score_matrix)
+    print("tie test")
+    score_matrix = pred_score_matrix([bucknell_perf, bucknell_perf], [[bucknell_lineup, bucknell_inv_lin],
+                                                                      [bucknell_lineup, bucknell_inv_lin]])
+    print(score_matrix)
+    team_a_matrix = []
+    for i in range(len(score_matrix)):
+        team_a_matrix.append([])
+        for j in score_matrix[i]:
+            team_a_matrix[i].append(j[0])
+    print(team_a_matrix)
 #TODO: todays tasks:
 #   Get new pred_perf structure to be organized such that it follows proper structure. You want it HUMAN READABLE.
 #   Get calculate_pred_score working with new pred_perf structure
