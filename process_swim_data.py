@@ -175,8 +175,7 @@ def filter_from_dataset(swims, swimmers, team=None, gender=None, start_year=None
     return filtered_data, filtered_swimmers
 
 
-# TODO: might be worth to implement this and filter_by_team into get_athlete_data
-def filter_by_date_range(swims, swimmers, start_timestamp=None, end_timestamp=None):  # Not in use
+def filter_by_date_range(swims, swimmers, start_timestamp=None, end_timestamp=None):  # NOTE: Not in use
     """
     function for filtering raw data
     :param swims: the database of swims from which we begin to whittle down the group data
@@ -356,10 +355,8 @@ def calculate_pred_score(perf_team_a, line_team_a, perf_team_b, line_team_b, sco
 
     lineup_scores_a = lineup_scores_a[line_team_a == 1]
     lineup_scores_b = lineup_scores_b[line_team_b == 1]
-    print("line perf")
-    print(lineup_scores_a)
-#NOTE: everything above is an attempt to get relays to go from general value to individual relays.
-#   brand new solution: add a bunch of columns to pred perf to make it identical to lineup matrix. then you can use old way.
+    #print("line perf")
+    #print(lineup_scores_a)
 
     event_list = line_team_a.columns.tolist()
     r = re.compile(".L[MF].+")  # look for relay events. the lookup is performed by finding the leadoff
@@ -438,7 +435,6 @@ def pred_score_matrix(team_list, lineup_matrix):
     return score_matrix
 
 
-# not sure if I should comment this for now just because its the messy demo code
 def demo_code():
     bucknell_vs_lehigh = 119957
     bucknell_invitational = 136124
@@ -512,8 +508,8 @@ def demo_code_with_time_filter():
     #print(MeetOpt.format_pred_perf(bucknell_perf))
     return(team_a_matrix)
 
-
 #demo_code_with_time_filter()
+
 
 def test_new_get_ath_data():
     bucknell_vs_lehigh = 119957
@@ -544,22 +540,22 @@ def test_new_get_ath_data():
     print(score_a)
     print(score_b)
 
-    print(team_data)
-    print(pred_perf)
+    print("score matrix test")
     score_matrix = pred_score_matrix([bucknell_perf, lehigh_perf],[[bucknell_lineup, bucknell_inv_lin],
                                                                    [lehigh_lineup, bu_lehigh_lin]])
     print(score_matrix)
-    print("tie test")
+
+    print("score matrix tie test")
     score_matrix = pred_score_matrix([bucknell_perf, bucknell_perf], [[bucknell_lineup, bucknell_inv_lin],
                                                                       [bucknell_lineup, bucknell_inv_lin]])
     print(score_matrix)
+
+    print("single team score matrix")
     team_a_matrix = []
     for i in range(len(score_matrix)):
         team_a_matrix.append([])
         for j in score_matrix[i]:
             team_a_matrix[i].append(j[0])
     print(team_a_matrix)
-#TODO: todays tasks:
-#   Get new pred_perf structure to be organized such that it follows proper structure. You want it HUMAN READABLE.
-#   Get calculate_pred_score working with new pred_perf structure
+
 test_new_get_ath_data()

@@ -42,15 +42,43 @@ constants.py
             relays. Keys correspond to different pool sizes.
 
 get_swim_data.py
-    A python module to create the database of swims. This is the main script of the
-    project so you should definitely start by running this. It may take a while, and
-    obviously requires an internet connection. The result of running this is a sqlite3
-    database in the working directory with the name set in constants.py
+    A python module to create the database of swims. This is the main script of the project so you should definitely
+    start by running this. It may take a while, and obviously requires an internet connection. The result of running
+    this is a sqlite3 database in the working directory with the name set in constants.py.
 
 process_swim_data.py
     A python module for processing data collected by get_swim_data. Contains functions for finding lineups used by
-    teams at different meets. Can be used for calculating predicted score matrix between two teams each using any number
-    of lineups.
+    teams at different meets. It also is where predicted performances of athletes in different events are calculated,
+    as well as where all the different predicted performance criteria are calculated. Can be used for calculating
+    predicted score matrix between two teams each using any number of lineups.
+
+helperfunctions.py
+    A collection of various functions that may be useful in multiple parts of the code. They didn't really fit into any
+    specific file/module, and most of them came from older versions of the code.
+
+SimpleGame.py
+    Python module used for coming up with probability matrices. You input a score matrix and the function will output
+    the probability that each lineup should be used in the matrix. It will also provide a predicted score based on all
+    of the predicted scores and their probabilities of being used. The only function in this file that is currently used
+    is FindOptStrategy.
+
+team_dict_generator.py
+    Used to build a dictionary of all team names and id's. Currently outdated. If you use it now all of the team names
+    that it reads will have a bunch of tabs and newline characters inserted into them. It takes over an hour to run so
+    it would be best to avoid running this if at all possible.
+
+team_dict.py
+    A dictionary of all team names and id's.
+
+MeetOpt.py
+    This is the module containing code for coming up with new lineups for a team. It is currently not functional. Most
+    of the variables in the code are defined within the code, which may become confusing due to how many variables
+    there are there. Some of the others are defined in constants.py. The biggest task that needs to be completed for
+    this is that we need a way of putting lineups into a format that MeetOpt can read. Lineups are expected to be
+    entered as a matrix of event times, where each column is an event and each row is a different swimmer's time that
+    was entered in the event. Each relay counts as a single event. Lineup current format has different columns for each
+    relay team (team A, team B, etc.) and relay leg (freestyle, backstroke, etc.). It needs to be converted to a usable
+    format somewhere within the MeetOpt code.
 
 Important Structures:
 database structure
