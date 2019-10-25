@@ -8,6 +8,8 @@ from helperfunctions import *
 from team_dict import *
 from bs4 import BeautifulSoup
 
+cat = 1 
+
 ########################################################################################################################
 # College Swimming Summer Break Project 2019                                                              Brad Beacham #
 #                                                                                    Adapted from code by Kevin Wylder #
